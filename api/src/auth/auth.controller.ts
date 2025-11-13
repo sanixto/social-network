@@ -1,24 +1,35 @@
-import { Controller, Get, Post } from '@nestjs/common';
+import { Body, Controller, Get, Patch, Post } from '@nestjs/common';
+import { AuthService } from './auth.service';
+import { User } from './entities/user.entity';
+import { CreateUserDto } from './dto/create-user.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
 
 @Controller('auth')
 export class AuthController {
+  constructor(private authService: AuthService) {}
+
   @Get('/me')
-  getProfile(): string {
-    return 'User profile data';
+  getProfile(): User | null {
+    return this.authService.getUserById('test-user-id');
   }
 
   @Post('/login')
-  login(): string {
-    return 'Login successful!';
+  login(): User | null {
+    return this.authService.validateUser('testuser', 'password');
   }
 
   @Post('/register')
-  register(): string {
-    return 'Registration successful!';
+  register(@Body() createUserDto: CreateUserDto): User {
+    return this.authService.registerUser(createUserDto);
   }
 
   @Post('/logout')
-  logout(): string {
-    return 'Logout successful!';
+  logout(): boolean {
+    return this.authService.logoutUser('test-user-id');
+  }
+
+  @Patch('/me')
+  updateProfile(@Body() updateUserDto: UpdateUserDto): User | null {
+    return this.authService.updateProfile('test-user-id', updateUserDto);
   }
 }
