@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { AuthService } from './auth.service'; // Assuming auth.service.ts is in the same directory
+import { HttpException, HttpStatus } from '@nestjs/common';
+import { AuthService } from './auth.service';
 
 // Mock User Entity structure
 class User {
@@ -33,14 +34,14 @@ class UpdateUserDto {
 describe('AuthService', () => {
   let service: AuthService;
 
-  // Initial user data for testing lookup methods (Use the mocked User class)
+  // Initial user data for testing lookup methods
   const initialUser: User = {
     id: 'test-user-id',
     username: 'testuser',
     password: 'password',
   };
 
-  // Mock DTOs for register and update operations (Instantiate the mocked DTO classes)
+  // Mock DTOs for register and update operations
   const mockCreateUserDto = new CreateUserDto('newuser', 'newpassword');
   const mockUpdateUserDto = new UpdateUserDto('updateduser');
 
@@ -65,9 +66,10 @@ describe('AuthService', () => {
       expect(user).toEqual(initialUser);
     });
 
-    it('should return null if ID does not exist', () => {
-      const user = service.getUserById('non-existent-id');
-      expect(user).toBeNull();
+    it('should throw HttpException with NOT_FOUND status if ID does not exist', () => {
+      expect(() => service.getUserById('non-existent-id')).toThrow(
+        new HttpException('User not found', HttpStatus.NOT_FOUND),
+      );
     });
   });
 
@@ -83,14 +85,26 @@ describe('AuthService', () => {
       expect(user).toEqual(initialUser);
     });
 
-    it('should return null for invalid username', () => {
-      const user = service.validateUser('wrongusername', initialUser.password);
-      expect(user).toBeNull();
+    it('should throw HttpException with UNAUTHORIZED status for invalid username', () => {
+      expect(() =>
+        service.validateUser('wrongusername', initialUser.password),
+      ).toThrow(
+        new HttpException(
+          'Invalid username or password',
+          HttpStatus.UNAUTHORIZED,
+        ),
+      );
     });
 
-    it('should return null for invalid password', () => {
-      const user = service.validateUser(initialUser.username, 'wrongpassword');
-      expect(user).toBeNull();
+    it('should throw HttpException with UNAUTHORIZED status for invalid password', () => {
+      expect(() =>
+        service.validateUser(initialUser.username, 'wrongpassword'),
+      ).toThrow(
+        new HttpException(
+          'Invalid username or password',
+          HttpStatus.UNAUTHORIZED,
+        ),
+      );
     });
   });
 
@@ -116,16 +130,15 @@ describe('AuthService', () => {
   // 4. logoutUser Tests
   // ----------------------------------------------------
   describe('logoutUser', () => {
-    // Note: Based on your current service implementation, logoutUser just checks
-    // if the user ID exists. This test reflects that logic.
     it('should return true if the user ID exists', () => {
       const result = service.logoutUser(initialUser.id);
       expect(result).toBe(true);
     });
 
-    it('should return false if the user ID does not exist', () => {
-      const result = service.logoutUser('non-existent-id');
-      expect(result).toBe(false);
+    it('should throw HttpException with NOT_FOUND status if user ID does not exist', () => {
+      expect(() => service.logoutUser('non-existent-id')).toThrow(
+        new HttpException('User not found', HttpStatus.NOT_FOUND),
+      );
     });
   });
 
@@ -134,9 +147,9 @@ describe('AuthService', () => {
   // ----------------------------------------------------
   describe('updateProfile', () => {
     it('should update the username of an existing user and return the updated user', () => {
-      // Setup: ensure the initial user is present and clean
+      // Get the original user
       const originalUser = service.getUserById(initialUser.id);
-      expect(originalUser?.username).toBe('testuser');
+      expect(originalUser.username).toBe('testuser');
 
       const updatedUser = service.updateProfile(
         initialUser.id,
@@ -145,20 +158,18 @@ describe('AuthService', () => {
 
       // Check the returned object
       expect(updatedUser).toBeDefined();
-      expect(updatedUser?.username).toBe(mockUpdateUserDto.username);
-      expect(updatedUser?.password).toBe(originalUser?.password); // Password should be unchanged
+      expect(updatedUser.username).toBe(mockUpdateUserDto.username);
+      expect(updatedUser.password).toBe(originalUser.password); // Password should be unchanged
 
       // Verify the change is persisted
       const persistedUser = service.getUserById(initialUser.id);
-      expect(persistedUser?.username).toBe(mockUpdateUserDto.username);
+      expect(persistedUser.username).toBe(mockUpdateUserDto.username);
     });
 
-    it('should return null if the user ID does not exist', () => {
-      const updatedUser = service.updateProfile(
-        'non-existent-id',
-        mockUpdateUserDto,
-      );
-      expect(updatedUser).toBeNull();
+    it('should throw HttpException with NOT_FOUND status if user ID does not exist', () => {
+      expect(() =>
+        service.updateProfile('non-existent-id', mockUpdateUserDto),
+      ).toThrow(new HttpException('User not found', HttpStatus.NOT_FOUND));
     });
   });
 });

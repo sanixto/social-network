@@ -1,15 +1,15 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { HttpException, HttpStatus } from '@nestjs/common';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 
-// --- Mock Entity and DTOs (Reusing Class structure for consistency) ---
+// --- Mock Entity and DTOs ---
 
 class User {
   id: string;
   username: string;
   password: string;
 
-  // Added constructor to correctly initialize non-optional properties
   constructor(id: string, username: string, password: string) {
     this.id = id;
     this.username = username;
@@ -39,13 +39,11 @@ class UpdateUserDto {
 
 // --- Mock Data ---
 
-// Now instantiate User using the new constructor
 const testUser = new User('test-user-id', 'testuser', 'password');
-
 const mockCreateDto = new CreateUserDto('newuser', 'newpassword');
-const mockUpdateDto = new UpdateUserDto('new_username'); // This mock DTO has a defined username
+const mockUpdateDto = new UpdateUserDto('new_username');
 
-// --- Mock Service (Define return values directly on the mock object) ---
+// --- Mock Service ---
 
 const mockAuthService = {
   getUserById: jest.fn(),
@@ -57,12 +55,11 @@ const mockAuthService = {
 
 describe('AuthController', () => {
   let controller: AuthController;
-  let authService: Record<keyof AuthService, jest.Mock>; // Explicitly type service methods as mocks
+  let authService: Record<keyof AuthService, jest.Mock>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [AuthController],
-      // Provide the mock service implementation
       providers: [
         {
           provide: AuthService,
@@ -72,21 +69,7 @@ describe('AuthController', () => {
     }).compile();
 
     controller = module.get<AuthController>(AuthController);
-    // Cast the service back to our mock type for safer mocking/assertions
     authService = module.get(AuthService);
-
-    // Set default mock return values
-    authService.getUserById.mockReturnValue(testUser);
-    authService.validateUser.mockReturnValue(testUser);
-    authService.registerUser.mockReturnValue({
-      id: 'new-id',
-      ...mockCreateDto,
-    });
-    authService.logoutUser.mockReturnValue(true);
-    authService.updateProfile.mockReturnValue({
-      ...testUser,
-      username: 'new_username',
-    });
 
     // Reset mocks before each test
     jest.clearAllMocks();
@@ -101,7 +84,6 @@ describe('AuthController', () => {
   // ----------------------------------------------------
   describe('getProfile', () => {
     it('should call authService.getUserById with hardcoded ID and return the user', () => {
-      // Setup the return value for this specific test
       authService.getUserById.mockReturnValue(testUser);
 
       const result = controller.getProfile();
@@ -110,10 +92,14 @@ describe('AuthController', () => {
       expect(result).toEqual(testUser);
     });
 
-    it('should return null if the user is not found', () => {
-      authService.getUserById.mockReturnValue(null);
-      const result = controller.getProfile();
-      expect(result).toBeNull();
+    it('should throw HttpException with NOT_FOUND status if user is not found', () => {
+      authService.getUserById.mockImplementation(() => {
+        throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+      });
+
+      expect(() => controller.getProfile()).toThrow(
+        new HttpException('User not found', HttpStatus.NOT_FOUND),
+      );
     });
   });
 
@@ -132,6 +118,22 @@ describe('AuthController', () => {
       );
       expect(result).toEqual(testUser);
     });
+
+    it('should throw HttpException with UNAUTHORIZED status for invalid credentials', () => {
+      authService.validateUser.mockImplementation(() => {
+        throw new HttpException(
+          'Invalid username or password',
+          HttpStatus.UNAUTHORIZED,
+        );
+      });
+
+      expect(() => controller.login()).toThrow(
+        new HttpException(
+          'Invalid username or password',
+          HttpStatus.UNAUTHORIZED,
+        ),
+      );
+    });
   });
 
   // ----------------------------------------------------
@@ -149,7 +151,6 @@ describe('AuthController', () => {
       const result = controller.register(mockCreateDto);
 
       expect(authService.registerUser).toHaveBeenCalledWith(mockCreateDto);
-      // We check for properties because the returned object might be a plain object, not a User instance
       expect(result).toEqual(mockResult);
     });
   });
@@ -166,6 +167,16 @@ describe('AuthController', () => {
       expect(authService.logoutUser).toHaveBeenCalledWith('test-user-id');
       expect(result).toBe(true);
     });
+
+    it('should throw HttpException with NOT_FOUND status if user is not found', () => {
+      authService.logoutUser.mockImplementation(() => {
+        throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+      });
+
+      expect(() => controller.logout()).toThrow(
+        new HttpException('User not found', HttpStatus.NOT_FOUND),
+      );
+    });
   });
 
   // ----------------------------------------------------
@@ -173,11 +184,10 @@ describe('AuthController', () => {
   // ----------------------------------------------------
   describe('updateProfile', () => {
     it('should call authService.updateProfile with hardcoded ID and received DTO', () => {
-      // Use nullish coalescing to ensure a string is passed to the User constructor
       const updatedUser: User = new User(
         testUser.id,
-        mockUpdateDto.username ?? testUser.username, // Fallback to original username if undefined
-        mockUpdateDto.password ?? testUser.password, // Fallback to original password if undefined
+        mockUpdateDto.username ?? testUser.username,
+        mockUpdateDto.password ?? testUser.password,
       );
 
       authService.updateProfile.mockReturnValue(updatedUser);
@@ -188,15 +198,17 @@ describe('AuthController', () => {
         'test-user-id',
         mockUpdateDto,
       );
-      expect(result?.username).toBe(mockUpdateDto.username);
+      expect(result.username).toBe(mockUpdateDto.username);
     });
 
-    it('should return null if update fails (user not found)', () => {
-      authService.updateProfile.mockReturnValue(null);
+    it('should throw HttpException with NOT_FOUND status if user is not found', () => {
+      authService.updateProfile.mockImplementation(() => {
+        throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+      });
 
-      const result = controller.updateProfile(mockUpdateDto);
-
-      expect(result).toBeNull();
+      expect(() => controller.updateProfile(mockUpdateDto)).toThrow(
+        new HttpException('User not found', HttpStatus.NOT_FOUND),
+      );
     });
   });
 });

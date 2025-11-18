@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { User } from './entities/user.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -9,16 +9,29 @@ export class AuthService {
     { id: 'test-user-id', username: 'testuser', password: 'password' },
   ];
 
-  getUserById(userId: string): User | null {
+  getUserById(userId: string): User {
     const user = this.users.find((user) => user.id === userId);
-    return user || null;
+
+    if (!user) {
+      throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+    }
+
+    return user;
   }
 
-  validateUser(username: string, password: string): User | null {
+  validateUser(username: string, password: string): User {
     const user = this.users.find(
       (user) => user.username === username && user.password === password,
     );
-    return user || null;
+
+    if (!user) {
+      throw new HttpException(
+        'Invalid username or password',
+        HttpStatus.UNAUTHORIZED,
+      );
+    }
+
+    return user;
   }
 
   registerUser(createUserDto: CreateUserDto): User {
@@ -32,16 +45,23 @@ export class AuthService {
   }
 
   logoutUser(userId: string): boolean {
-    return this.users.some((user) => user.id === userId);
+    const userExists = this.users.some((user) => user.id === userId);
+
+    if (!userExists) {
+      throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+    }
+
+    return true;
   }
 
-  updateProfile(userId: string, updateUserDto: UpdateUserDto): User | null {
+  updateProfile(userId: string, updateUserDto: UpdateUserDto): User {
     const user = this.users.find((user) => user.id === userId);
-    if (user) {
-      Object.assign(user, updateUserDto);
-      console.log(this.users);
-      return user;
+
+    if (!user) {
+      throw new HttpException('User not found', HttpStatus.NOT_FOUND);
     }
-    return null;
+
+    Object.assign(user, updateUserDto);
+    return user;
   }
 }

@@ -9,12 +9,12 @@ export class AuthController {
   constructor(private authService: AuthService) {}
 
   @Get('/me')
-  getProfile(): User | null {
+  getProfile(): User {
     return this.authService.getUserById('test-user-id');
   }
 
   @Post('/login')
-  login(): User | null {
+  login(): User {
     return this.authService.validateUser('testuser', 'password');
   }
 
@@ -29,7 +29,7 @@ export class AuthController {
   }
 
   @Patch('/me')
-  updateProfile(@Body() updateUserDto: UpdateUserDto): User | null {
+  updateProfile(@Body() updateUserDto: UpdateUserDto): User {
     return this.authService.updateProfile('test-user-id', updateUserDto);
   }
 }
