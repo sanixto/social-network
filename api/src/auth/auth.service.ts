@@ -2,8 +2,8 @@ import { HttpException, HttpStatus, Inject, Injectable } from '@nestjs/common';
 import { User } from './entities/user.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { UUID_GENERATOR_TOKEN } from 'src/common/uuid/uuid.tokens';
-import { type UuidGenerator } from 'src/common/uuid/uuid-generator.interface';
+import { UUID_GENERATOR_TOKEN } from '../common/uuid/uuid.tokens';
+import { type UuidGenerator } from '../common/uuid/uuid-generator.interface';
 
 const testUUID = '0a3fd84a-b19f-4818-afbf-0173330f50de';
 @Injectable()

@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { UUID_GENERATOR_TOKEN } from 'src/common/uuid/uuid.tokens';
+import { UUID_GENERATOR_TOKEN } from '../common/uuid/uuid.tokens';
 
 // Mock User Entity structure
 class User {
