@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { UserService } from './user.service';
+import { UUID_GENERATOR_TOKEN } from '../common/uuid/uuid.tokens';
 
 // Mock User Entity structure
 class User {
@@ -33,10 +34,14 @@ class UpdateUserDto {
 
 describe('UserService', () => {
   let service: UserService;
+  let mockGenerator: { generate: jest.Mock<string, []> };
+
+  // Must match the test default in the service file
+  const testUUID = '0a3fd84a-b19f-4818-afbf-0173330f50de';
 
   // Initial user data matching service default
   const initialUser: User = {
-    id: 'test-user-id',
+    id: testUUID,
     username: 'testuser',
     password: 'password',
   };
@@ -45,8 +50,17 @@ describe('UserService', () => {
   const mockUpdateUserDto = new UpdateUserDto('updateduser');
 
   beforeEach(async () => {
+    // Provide a mock uuid generator that returns unique ids per call
+    let idCounter = 0;
+    mockGenerator = {
+      generate: jest.fn(() => `generated-${++idCounter}`),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
-      providers: [UserService],
+      providers: [
+        UserService,
+        { provide: UUID_GENERATOR_TOKEN, useValue: mockGenerator },
+      ],
     }).compile();
 
     service = module.get<UserService>(UserService);
@@ -63,6 +77,7 @@ describe('UserService', () => {
     it('should create and return a new user with a generated ID', () => {
       const newUser = service.create(mockCreateUserDto);
 
+      expect(mockGenerator.generate).toHaveBeenCalled();
       expect(newUser).toHaveProperty('id');
       expect(newUser.username).toBe(mockCreateUserDto.username);
       expect(newUser.password).toBe(mockCreateUserDto.password);

@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
+import { UUID_GENERATOR_TOKEN } from 'src/common/uuid/uuid.tokens';
 
 // --- Mock Entity and DTOs ---
 
@@ -53,9 +54,14 @@ const mockAuthService = {
   updateProfile: jest.fn(),
 };
 
+// --- Mock UUID generator ---
+const mockUuidGenerator = {
+  generate: jest.fn().mockReturnValue('test-user-id'),
+};
+
 describe('AuthController', () => {
   let controller: AuthController;
-  let authService: Record<keyof AuthService, jest.Mock>;
+  let authService: Record<keyof typeof mockAuthService, jest.Mock>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -64,6 +70,10 @@ describe('AuthController', () => {
         {
           provide: AuthService,
           useValue: mockAuthService,
+        },
+        {
+          provide: UUID_GENERATOR_TOKEN,
+          useValue: mockUuidGenerator,
         },
       ],
     }).compile();

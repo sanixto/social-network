@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { AuthService } from './auth.service';
+import { UUID_GENERATOR_TOKEN } from 'src/common/uuid/uuid.tokens';
 
 // Mock User Entity structure
 class User {
@@ -34,9 +35,12 @@ class UpdateUserDto {
 describe('AuthService', () => {
   let service: AuthService;
 
+  // This must match the initial test user in auth.service.ts
+  const TEST_UUID = '0a3fd84a-b19f-4818-afbf-0173330f50de';
+
   // Initial user data for testing lookup methods
   const initialUser: User = {
-    id: 'test-user-id',
+    id: TEST_UUID,
     username: 'testuser',
     password: 'password',
   };
@@ -45,9 +49,18 @@ describe('AuthService', () => {
   const mockCreateUserDto = new CreateUserDto('newuser', 'newpassword');
   const mockUpdateUserDto = new UpdateUserDto('updateduser');
 
+  // Mock UUID generator
+  const mockGeneratedId = 'generated-uuid-1234';
+  const mockUuidGenerator = {
+    generate: jest.fn().mockReturnValue(mockGeneratedId),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [AuthService],
+      providers: [
+        AuthService,
+        { provide: UUID_GENERATOR_TOKEN, useValue: mockUuidGenerator },
+      ],
     }).compile();
 
     service = module.get<AuthService>(AuthService);
@@ -116,13 +129,15 @@ describe('AuthService', () => {
       const newUser = service.registerUser(mockCreateUserDto);
 
       // Check the returned object structure and data
-      expect(newUser).toHaveProperty('id');
+      expect(newUser).toHaveProperty('id', mockGeneratedId);
       expect(newUser.username).toBe(mockCreateUserDto.username);
       expect(newUser.password).toBe(mockCreateUserDto.password);
 
       // Verify the user was actually added to the internal array
       const addedUser = service.getUserById(newUser.id);
       expect(addedUser).toEqual(newUser);
+      // Ensure the UUID generator was called
+      expect(mockUuidGenerator.generate).toHaveBeenCalled();
     });
   });
 

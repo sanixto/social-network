@@ -1,0 +1,1 @@
+export const UUID_GENERATOR_TOKEN = 'UUID_GENERATOR';

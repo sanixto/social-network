@@ -1,13 +1,20 @@
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Inject, Injectable } from '@nestjs/common';
 import { User } from './entities/user.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { UUID_GENERATOR_TOKEN } from 'src/common/uuid/uuid.tokens';
+import { type UuidGenerator } from 'src/common/uuid/uuid-generator.interface';
 
+const testUUID = '0a3fd84a-b19f-4818-afbf-0173330f50de';
 @Injectable()
 export class AuthService {
   private readonly users: User[] = [
-    { id: 'test-user-id', username: 'testuser', password: 'password' },
+    { id: testUUID, username: 'testuser', password: 'password' },
   ];
+
+  constructor(
+    @Inject(UUID_GENERATOR_TOKEN) private readonly uuidGenerator: UuidGenerator,
+  ) {}
 
   getUserById(userId: string): User {
     const user = this.users.find((user) => user.id === userId);
@@ -36,7 +43,7 @@ export class AuthService {
 
   registerUser(createUserDto: CreateUserDto): User {
     const newUser: User = {
-      id: `user-${Date.now()}`,
+      id: this.uuidGenerator.generate(),
       username: createUserDto.username,
       password: createUserDto.password,
     };

@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { UserController } from './user.controller';
 import { UserService } from './user.service';
+import { UUID_GENERATOR_TOKEN } from '../common/uuid/uuid.tokens';
 
 // --- Mock Entity and DTOs ---
 
@@ -43,7 +44,7 @@ const testUser = new User('user-id-1', 'alice', 'secret');
 const mockCreateDto = new CreateUserDto('bob', 'bobpass');
 const mockUpdateDto = new UpdateUserDto('alice_updated', 'newsecret');
 
-// --- Mock Service ---
+// --- Mock Service & UUID Generator ---
 
 const mockUserService = {
   create: jest.fn(),
@@ -51,6 +52,10 @@ const mockUserService = {
   findOne: jest.fn(),
   update: jest.fn(),
   remove: jest.fn(),
+};
+
+const mockUuidGenerator = {
+  generate: jest.fn().mockReturnValue('mock-uuid'),
 };
 
 describe('UserController', () => {
@@ -64,6 +69,10 @@ describe('UserController', () => {
         {
           provide: UserService,
           useValue: mockUserService,
+        },
+        {
+          provide: UUID_GENERATOR_TOKEN,
+          useValue: mockUuidGenerator,
         },
       ],
     }).compile();
@@ -173,13 +182,13 @@ describe('UserController', () => {
   // 5. DELETE /user/:id (remove)
   // ----------------------------------------------------
   describe('remove', () => {
-    it('should call userService.remove with id and return true', () => {
-      userService.remove.mockReturnValue(true);
+    it('should call userService.remove with id and return undefined', () => {
+      userService.remove.mockReturnValue(undefined);
 
       const result = controller.remove(testUser.id);
 
       expect(userService.remove).toHaveBeenCalledWith(testUser.id);
-      expect(result).toBe(true);
+      expect(result).toBeUndefined();
     });
 
     it('should throw HttpException with NOT_FOUND status if user is not found', () => {
