@@ -1,35 +1,36 @@
 import { Body, Controller, Get, Patch, Post } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { User } from './entities/user.entity';
-import { CreateUserDto } from './dto/create-user.dto';
-import { UpdateUserDto } from './dto/update-user.dto';
+import { CreateUserDto } from '../user/dto/create-user.dto';
+import { UpdateUserDto } from '../user/dto/update-user.dto';
+import { SignInDto } from './dto/sign-in.dto';
+import { type UserWithoutPassword } from '../user/types/user.types';
 
 @Controller('auth')
 export class AuthController {
   constructor(private authService: AuthService) {}
 
-  @Get('/me')
-  getProfile(): User {
-    return this.authService.getUserById('test-user-id');
+  @Get('me')
+  getMe(): UserWithoutPassword {
+    return this.authService.getMe('test-user-id');
   }
 
-  @Post('/login')
-  login(): User {
-    return this.authService.validateUser('testuser', 'password');
+  @Post('login')
+  signIn(@Body() signInDto: SignInDto): UserWithoutPassword {
+    return this.authService.validate(signInDto.username, signInDto.password);
   }
 
-  @Post('/register')
-  register(@Body() createUserDto: CreateUserDto): User {
-    return this.authService.registerUser(createUserDto);
+  @Post('register')
+  register(@Body() createUserDto: CreateUserDto): UserWithoutPassword {
+    return this.authService.register(createUserDto);
   }
 
-  @Post('/logout')
+  @Post('logout')
   logout(): boolean {
     return this.authService.logoutUser('test-user-id');
   }
 
-  @Patch('/me')
-  updateProfile(@Body() updateUserDto: UpdateUserDto): User {
-    return this.authService.updateProfile('test-user-id', updateUserDto);
+  @Patch('me')
+  updateMe(@Body() updateUserDto: UpdateUserDto): UserWithoutPassword {
+    return this.authService.updateMe('test-user-id', updateUserDto);
   }
 }

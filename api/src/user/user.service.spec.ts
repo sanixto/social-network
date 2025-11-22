@@ -115,6 +115,22 @@ describe('UserService', () => {
   });
 
   // ----------------------------------------------------
+  // findOneByUsername
+  // ----------------------------------------------------
+  describe('findOneByUsername', () => {
+    it('should return the user if username exists', () => {
+      const user = service.findOneByUsername(initialUser.username);
+      expect(user).toEqual(initialUser);
+    });
+
+    it('should throw HttpException with NOT_FOUND status if username does not exist', () => {
+      expect(() => service.findOneByUsername('non-existent-username')).toThrow(
+        new HttpException('User not found', HttpStatus.NOT_FOUND),
+      );
+    });
+  });
+
+  // ----------------------------------------------------
   // update
   // ----------------------------------------------------
   describe('update', () => {

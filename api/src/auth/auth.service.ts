@@ -1,74 +1,45 @@
-import { HttpException, HttpStatus, Inject, Injectable } from '@nestjs/common';
-import { User } from './entities/user.entity';
-import { CreateUserDto } from './dto/create-user.dto';
-import { UpdateUserDto } from './dto/update-user.dto';
-import { UUID_GENERATOR_TOKEN } from '../common/uuid/uuid.tokens';
-import { type UuidGenerator } from '../common/uuid/uuid-generator.interface';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { User } from '../user/entities/user.entity';
+import { CreateUserDto } from '../user/dto/create-user.dto';
+import { UpdateUserDto } from '../user/dto/update-user.dto';
+import { UserService } from '../user/user.service';
+import { type UserWithoutPassword } from '../user/types/user.types';
 
-const testUUID = '0a3fd84a-b19f-4818-afbf-0173330f50de';
 @Injectable()
 export class AuthService {
-  private readonly users: User[] = [
-    { id: testUUID, username: 'testuser', password: 'password' },
-  ];
+  constructor(private readonly userService: UserService) {}
 
-  constructor(
-    @Inject(UUID_GENERATOR_TOKEN) private readonly uuidGenerator: UuidGenerator,
-  ) {}
-
-  getUserById(userId: string): User {
-    const user = this.users.find((user) => user.id === userId);
-
-    if (!user) {
-      throw new HttpException('User not found', HttpStatus.NOT_FOUND);
-    }
-
-    return user;
+  getMe(userId: string): UserWithoutPassword {
+    const user = this.userService.findOne(userId);
+    return this.excludePassword(user);
   }
 
-  validateUser(username: string, password: string): User {
-    const user = this.users.find(
-      (user) => user.username === username && user.password === password,
-    );
+  validate(username: string, password: string) {
+    const user = this.userService.findOneByUsername(username);
 
-    if (!user) {
-      throw new HttpException(
-        'Invalid username or password',
-        HttpStatus.UNAUTHORIZED,
-      );
+    if (user.password !== password) {
+      throw new UnauthorizedException('Invalid username or password');
     }
 
-    return user;
+    return this.excludePassword(user);
   }
 
-  registerUser(createUserDto: CreateUserDto): User {
-    const newUser: User = {
-      id: this.uuidGenerator.generate(),
-      username: createUserDto.username,
-      password: createUserDto.password,
-    };
-    this.users.push(newUser);
-    return newUser;
+  register(createUserDto: CreateUserDto): UserWithoutPassword {
+    const newUser = this.userService.create(createUserDto);
+    return this.excludePassword(newUser);
   }
 
   logoutUser(userId: string): boolean {
-    const userExists = this.users.some((user) => user.id === userId);
-
-    if (!userExists) {
-      throw new HttpException('User not found', HttpStatus.NOT_FOUND);
-    }
-
-    return true;
+    return !!this.userService.findOne(userId);
   }
 
-  updateProfile(userId: string, updateUserDto: UpdateUserDto): User {
-    const user = this.users.find((user) => user.id === userId);
+  updateMe(userId: string, updateUserDto: UpdateUserDto): UserWithoutPassword {
+    const user = this.userService.update(userId, updateUserDto);
+    return this.excludePassword(user);
+  }
 
-    if (!user) {
-      throw new HttpException('User not found', HttpStatus.NOT_FOUND);
-    }
-
-    Object.assign(user, updateUserDto);
-    return user;
+  private excludePassword(user: User): UserWithoutPassword {
+    const { password: _, ...userWithoutPassword } = user;
+    return userWithoutPassword;
   }
 }

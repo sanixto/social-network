@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { HttpException, HttpStatus } from '@nestjs/common';
+import { NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { UUID_GENERATOR_TOKEN } from '../common/uuid/uuid.tokens';
+import { UserService } from '../user/user.service';
 
 // Mock User Entity structure
 class User {
@@ -34,8 +34,14 @@ class UpdateUserDto {
 
 describe('AuthService', () => {
   let service: AuthService;
+  let mockUserService: {
+    findOne: jest.Mock<User | undefined>;
+    findOneByUsername: jest.Mock;
+    create: jest.Mock;
+    update: jest.Mock;
+  };
 
-  // This must match the initial test user in auth.service.ts
+  // This must match the initial test user in user.service.ts
   const TEST_UUID = '0a3fd84a-b19f-4818-afbf-0173330f50de';
 
   // Initial user data for testing lookup methods
@@ -45,21 +51,51 @@ describe('AuthService', () => {
     password: 'password',
   };
 
+  // User shape without password for assertions
+  const initialUserNoPassword = {
+    id: initialUser.id,
+    username: initialUser.username,
+  };
+
   // Mock DTOs for register and update operations
   const mockCreateUserDto = new CreateUserDto('newuser', 'newpassword');
   const mockUpdateUserDto = new UpdateUserDto('updateduser');
 
-  // Mock UUID generator
+  // Mock generated id
   const mockGeneratedId = 'generated-uuid-1234';
-  const mockUuidGenerator = {
-    generate: jest.fn().mockReturnValue(mockGeneratedId),
-  };
 
   beforeEach(async () => {
+    // internal store to simulate user persistence
+    const users: User[] = [{ ...initialUser }];
+
+    mockUserService = {
+      findOne: jest.fn((id: string): User | undefined => {
+        const u = users.find((x) => x.id === id);
+        if (!u) throw new NotFoundException('User not found');
+        return u;
+      }),
+      findOneByUsername: jest.fn((username: string) => {
+        const u = users.find((x) => x.username === username);
+        if (!u) throw new NotFoundException('User not found');
+        return u;
+      }),
+      create: jest.fn((dto: CreateUserDto) => {
+        const newUser: User = { id: mockGeneratedId, ...dto };
+        users.push(newUser);
+        return newUser;
+      }),
+      update: jest.fn((id: string, dto: UpdateUserDto) => {
+        const u = users.find((x) => x.id === id);
+        if (!u) throw new NotFoundException('User not found');
+        Object.assign(u, dto);
+        return u;
+      }),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AuthService,
-        { provide: UUID_GENERATOR_TOKEN, useValue: mockUuidGenerator },
+        { provide: UserService, useValue: mockUserService },
       ],
     }).compile();
 
@@ -71,120 +107,108 @@ describe('AuthService', () => {
   });
 
   // ----------------------------------------------------
-  // 1. getUserById Tests
+  // getMe
   // ----------------------------------------------------
-  describe('getUserById', () => {
-    it('should return the user if ID exists', () => {
-      const user = service.getUserById(initialUser.id);
-      expect(user).toEqual(initialUser);
+  describe('getMe', () => {
+    it('should return the user without password if ID exists', () => {
+      const user = service.getMe(initialUser.id);
+      expect(user).toEqual(initialUserNoPassword);
+      expect((user as User).password).toBeUndefined();
+      expect(mockUserService.findOne).toHaveBeenCalledWith(initialUser.id);
     });
 
-    it('should throw HttpException with NOT_FOUND status if ID does not exist', () => {
-      expect(() => service.getUserById('non-existent-id')).toThrow(
-        new HttpException('User not found', HttpStatus.NOT_FOUND),
-      );
+    it('should throw NotFoundException if ID does not exist', () => {
+      expect(() => service.getMe('non-existent-id')).toThrow(NotFoundException);
     });
   });
 
   // ----------------------------------------------------
-  // 2. validateUser Tests
+  // validate
   // ----------------------------------------------------
-  describe('validateUser', () => {
-    it('should return the user for valid credentials', () => {
-      const user = service.validateUser(
+  describe('validate', () => {
+    it('should return the user without password for valid credentials', () => {
+      const user = service.validate(initialUser.username, initialUser.password);
+      expect(user).toEqual(initialUserNoPassword);
+      expect((user as User).password).toBeUndefined();
+      expect(mockUserService.findOneByUsername).toHaveBeenCalledWith(
         initialUser.username,
-        initialUser.password,
-      );
-      expect(user).toEqual(initialUser);
-    });
-
-    it('should throw HttpException with UNAUTHORIZED status for invalid username', () => {
-      expect(() =>
-        service.validateUser('wrongusername', initialUser.password),
-      ).toThrow(
-        new HttpException(
-          'Invalid username or password',
-          HttpStatus.UNAUTHORIZED,
-        ),
       );
     });
 
-    it('should throw HttpException with UNAUTHORIZED status for invalid password', () => {
+    it('should throw NotFoundException for invalid username', () => {
       expect(() =>
-        service.validateUser(initialUser.username, 'wrongpassword'),
-      ).toThrow(
-        new HttpException(
-          'Invalid username or password',
-          HttpStatus.UNAUTHORIZED,
-        ),
-      );
+        service.validate('wrongusername', initialUser.password),
+      ).toThrow(NotFoundException);
+    });
+
+    it('should throw UnauthorizedException for invalid password', () => {
+      expect(() =>
+        service.validate(initialUser.username, 'wrongpassword'),
+      ).toThrow(UnauthorizedException);
     });
   });
 
   // ----------------------------------------------------
-  // 3. registerUser Tests
+  // register
   // ----------------------------------------------------
-  describe('registerUser', () => {
-    it('should create and return a new user with a generated ID', () => {
-      const newUser = service.registerUser(mockCreateUserDto);
+  describe('register', () => {
+    it('should create and return a new user without password and call userService.create', () => {
+      const newUser = service.register(mockCreateUserDto);
 
-      // Check the returned object structure and data
+      expect(mockUserService.create).toHaveBeenCalledWith(mockCreateUserDto);
       expect(newUser).toHaveProperty('id', mockGeneratedId);
-      expect(newUser.username).toBe(mockCreateUserDto.username);
-      expect(newUser.password).toBe(mockCreateUserDto.password);
+      expect(newUser).toHaveProperty('username', mockCreateUserDto.username);
+      expect((newUser as User).password).toBeUndefined();
 
-      // Verify the user was actually added to the internal array
-      const addedUser = service.getUserById(newUser.id);
-      expect(addedUser).toEqual(newUser);
-      // Ensure the UUID generator was called
-      expect(mockUuidGenerator.generate).toHaveBeenCalled();
+      // new user should be retrievable via userService.findOne
+      const added = mockUserService.findOne(mockGeneratedId);
+      expect(added).toEqual({
+        id: mockGeneratedId,
+        username: mockCreateUserDto.username,
+        password: mockCreateUserDto.password,
+      });
     });
   });
 
   // ----------------------------------------------------
-  // 4. logoutUser Tests
+  // logoutUser
   // ----------------------------------------------------
   describe('logoutUser', () => {
     it('should return true if the user ID exists', () => {
       const result = service.logoutUser(initialUser.id);
       expect(result).toBe(true);
+      expect(mockUserService.findOne).toHaveBeenCalledWith(initialUser.id);
     });
 
-    it('should throw HttpException with NOT_FOUND status if user ID does not exist', () => {
+    it('should throw NotFoundException if user ID does not exist', () => {
       expect(() => service.logoutUser('non-existent-id')).toThrow(
-        new HttpException('User not found', HttpStatus.NOT_FOUND),
+        NotFoundException,
       );
     });
   });
 
   // ----------------------------------------------------
-  // 5. updateProfile Tests
+  // updateMe
   // ----------------------------------------------------
-  describe('updateProfile', () => {
-    it('should update the username of an existing user and return the updated user', () => {
-      // Get the original user
-      const originalUser = service.getUserById(initialUser.id);
-      expect(originalUser.username).toBe('testuser');
+  describe('updateMe', () => {
+    it('should update the username of an existing user and return the updated user without password', () => {
+      const original = mockUserService.findOne(initialUser.id);
+      expect(original?.username).toBe('testuser');
 
-      const updatedUser = service.updateProfile(
-        initialUser.id,
-        mockUpdateUserDto,
-      );
+      const updated = service.updateMe(initialUser.id, mockUpdateUserDto);
 
-      // Check the returned object
-      expect(updatedUser).toBeDefined();
-      expect(updatedUser.username).toBe(mockUpdateUserDto.username);
-      expect(updatedUser.password).toBe(originalUser.password); // Password should be unchanged
+      expect(updated).toBeDefined();
+      expect(updated.username).toBe(mockUpdateUserDto.username);
+      expect((updated as User).password).toBeUndefined();
 
-      // Verify the change is persisted
-      const persistedUser = service.getUserById(initialUser.id);
-      expect(persistedUser.username).toBe(mockUpdateUserDto.username);
+      const persisted = mockUserService.findOne(initialUser.id);
+      expect(persisted?.username).toBe(mockUpdateUserDto.username);
     });
 
-    it('should throw HttpException with NOT_FOUND status if user ID does not exist', () => {
+    it('should throw NotFoundException if user ID does not exist', () => {
       expect(() =>
-        service.updateProfile('non-existent-id', mockUpdateUserDto),
-      ).toThrow(new HttpException('User not found', HttpStatus.NOT_FOUND));
+        service.updateMe('non-existent-id', mockUpdateUserDto),
+      ).toThrow(NotFoundException);
     });
   });
 });

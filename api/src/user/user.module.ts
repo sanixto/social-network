@@ -7,5 +7,6 @@ import { UuidModule } from 'src/common/uuid/uuid.module';
   imports: [UuidModule],
   controllers: [UserController],
   providers: [UserService],
+  exports: [UserService],
 })
 export class UserModule {}
