@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { UserService } from '../user/user.service';
+import { JwtService } from '@nestjs/jwt';
 
 // Mock User Entity structure
 class User {
@@ -39,6 +40,9 @@ describe('AuthService', () => {
     findOneByUsername: jest.Mock;
     create: jest.Mock;
     update: jest.Mock;
+  };
+  let mockJwtService: {
+    signAsync: jest.Mock<Promise<string>, [any]>;
   };
 
   // This must match the initial test user in user.service.ts
@@ -92,10 +96,17 @@ describe('AuthService', () => {
       }),
     };
 
+    mockJwtService = {
+      signAsync: jest
+        .fn<Promise<string>, [any]>()
+        .mockResolvedValue('signed-jwt-token'),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AuthService,
         { provide: UserService, useValue: mockUserService },
+        { provide: JwtService, useValue: mockJwtService },
       ],
     }).compile();
 
@@ -145,6 +156,23 @@ describe('AuthService', () => {
       expect(() =>
         service.validate(initialUser.username, 'wrongpassword'),
       ).toThrow(UnauthorizedException);
+    });
+  });
+
+  // ----------------------------------------------------
+  // signIn
+  // ----------------------------------------------------
+  describe('signIn', () => {
+    it('should return an access_token and call jwtService.signAsync with proper payload', async () => {
+      // ensure mocked signAsync resolves with expected token
+      mockJwtService.signAsync.mockResolvedValueOnce('expected-token-123');
+      const res = await service.signIn(initialUserNoPassword);
+
+      expect(res).toEqual({ access_token: 'expected-token-123' });
+      expect(mockJwtService.signAsync).toHaveBeenCalledWith({
+        sub: initialUser.id,
+        username: initialUser.username,
+      });
     });
   });
 

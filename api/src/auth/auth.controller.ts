@@ -4,6 +4,7 @@ import { CreateUserDto } from '../user/dto/create-user.dto';
 import { UpdateUserDto } from '../user/dto/update-user.dto';
 import { SignInDto } from './dto/sign-in.dto';
 import { type UserWithoutPassword } from '../user/types/user.types';
+import { AuthResponseDto } from './dto/auth-response.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -15,8 +16,12 @@ export class AuthController {
   }
 
   @Post('login')
-  signIn(@Body() signInDto: SignInDto): UserWithoutPassword {
-    return this.authService.validate(signInDto.username, signInDto.password);
+  async signIn(@Body() signInDto: SignInDto): Promise<AuthResponseDto> {
+    const user = this.authService.validate(
+      signInDto.username,
+      signInDto.password,
+    );
+    return this.authService.signIn(user);
   }
 
   @Post('register')

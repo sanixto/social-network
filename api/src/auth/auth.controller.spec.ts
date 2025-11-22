@@ -49,6 +49,7 @@ const mockUpdateDto = new UpdateUserDto('new_username');
 const mockAuthService = {
   getMe: jest.fn(),
   validate: jest.fn(),
+  signIn: jest.fn(),
   register: jest.fn(),
   logoutUser: jest.fn(),
   updateMe: jest.fn(),
@@ -105,36 +106,38 @@ describe('AuthController', () => {
   // POST /auth/login (signIn)
   // ----------------------------------------------------
   describe('signIn', () => {
-    it('should call authService.validate with provided credentials and return the user without password', () => {
+    it('should call authService.validate with provided credentials and return access_token from authService.signIn', async () => {
       authService.validate.mockReturnValue(testUserNoPassword);
+      authService.signIn.mockResolvedValue({ access_token: 'jwt-token-123' });
 
-      const result = controller.signIn({
+      const result = await controller.signIn({
         username: 'testuser',
         password: 'password',
       });
 
       expect(authService.validate).toHaveBeenCalledWith('testuser', 'password');
-      expect(result).toEqual(testUserNoPassword);
+      expect(authService.signIn).toHaveBeenCalledWith(testUserNoPassword);
+      expect(result).toEqual({ access_token: 'jwt-token-123' });
     });
 
-    it('should throw NotFoundException for invalid username', () => {
+    it('should throw NotFoundException for invalid username', async () => {
       authService.validate.mockImplementation(() => {
         throw new NotFoundException('User not found');
       });
 
-      expect(() =>
+      await expect(
         controller.signIn({ username: 'wrong', password: 'password' }),
-      ).toThrow(NotFoundException);
+      ).rejects.toThrow(NotFoundException);
     });
 
-    it('should throw UnauthorizedException for invalid password', () => {
+    it('should throw UnauthorizedException for invalid password', async () => {
       authService.validate.mockImplementation(() => {
         throw new UnauthorizedException('Invalid username or password');
       });
 
-      expect(() =>
+      await expect(
         controller.signIn({ username: 'testuser', password: 'wrong' }),
-      ).toThrow(UnauthorizedException);
+      ).rejects.toThrow(UnauthorizedException);
     });
   });
 

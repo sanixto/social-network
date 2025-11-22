@@ -1,13 +1,18 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
 import { User } from '../user/entities/user.entity';
 import { CreateUserDto } from '../user/dto/create-user.dto';
 import { UpdateUserDto } from '../user/dto/update-user.dto';
 import { UserService } from '../user/user.service';
 import { type UserWithoutPassword } from '../user/types/user.types';
+import { AuthResponseDto } from './dto/auth-response.dto';
 
 @Injectable()
 export class AuthService {
-  constructor(private readonly userService: UserService) {}
+  constructor(
+    private readonly userService: UserService,
+    private readonly jwtService: JwtService,
+  ) {}
 
   getMe(userId: string): UserWithoutPassword {
     const user = this.userService.findOne(userId);
@@ -22,6 +27,13 @@ export class AuthService {
     }
 
     return this.excludePassword(user);
+  }
+
+  async signIn(user: UserWithoutPassword): Promise<AuthResponseDto> {
+    const payload = { sub: user.id, username: user.username };
+    return {
+      access_token: await this.jwtService.signAsync(payload),
+    };
   }
 
   register(createUserDto: CreateUserDto): UserWithoutPassword {
