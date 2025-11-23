@@ -9,7 +9,7 @@ const testUUID = '0a3fd84a-b19f-4818-afbf-0173330f50de';
 @Injectable()
 export class UserService {
   private readonly users: User[] = [
-    { id: testUUID, username: 'testuser', password: 'password' },
+    { id: testUUID, username: 'testuser', password: 'Password1!' },
   ];
 
   constructor(
