@@ -6,6 +6,7 @@ import { UpdateUserDto } from '../user/dto/update-user.dto';
 import { UserService } from '../user/user.service';
 import { type UserWithoutPassword } from '../user/types/user.types';
 import { AuthResponseDto } from './dto/auth-response.dto';
+import { JwtPayload } from './types/jwt-payload.interface';
 
 @Injectable()
 export class AuthService {
@@ -32,7 +33,7 @@ export class AuthService {
   async signIn(user: UserWithoutPassword): Promise<AuthResponseDto> {
     const payload = { sub: user.id, username: user.username };
     return {
-      access_token: await this.jwtService.signAsync(payload),
+      access_token: await this.jwtService.signAsync<JwtPayload>(payload),
     };
   }
 
