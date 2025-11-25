@@ -6,6 +6,7 @@ import { SignInDto } from './dto/sign-in.dto';
 import { type UserWithoutPassword } from '../user/types/user.types';
 import { AuthResponseDto } from './dto/auth-response.dto';
 import { AuthGuard } from './auth.guard';
+import { User } from './decorators/user.decorator';
 
 @Controller('auth')
 export class AuthController {
@@ -13,8 +14,8 @@ export class AuthController {
 
   @UseGuards(AuthGuard)
   @Get('me')
-  getMe(): UserWithoutPassword {
-    return this.authService.getMe('0a3fd84a-b19f-4818-afbf-0173330f50de');
+  getMe(@User('sub') userId: string): UserWithoutPassword {
+    return this.authService.getMe(userId);
   }
 
   @Post('login')
@@ -33,16 +34,16 @@ export class AuthController {
 
   @UseGuards(AuthGuard)
   @Post('logout')
-  logout(): boolean {
-    return this.authService.logoutUser('0a3fd84a-b19f-4818-afbf-0173330f50de');
+  logout(@User('sub') userId: string): boolean {
+    return this.authService.logoutUser(userId);
   }
 
   @UseGuards(AuthGuard)
   @Patch('me')
-  updateMe(@Body() updateUserDto: UpdateUserDto): UserWithoutPassword {
-    return this.authService.updateMe(
-      '0a3fd84a-b19f-4818-afbf-0173330f50de',
-      updateUserDto,
-    );
+  updateMe(
+    @User('sub') userId: string,
+    @Body() updateUserDto: UpdateUserDto,
+  ): UserWithoutPassword {
+    return this.authService.updateMe(userId, updateUserDto);
   }
 }

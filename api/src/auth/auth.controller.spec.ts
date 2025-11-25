@@ -109,14 +109,12 @@ describe('AuthController', () => {
   // GET /auth/me (getMe)
   // ----------------------------------------------------
   describe('getMe', () => {
-    it('should call authService.getMe with hardcoded ID and return the user without password', () => {
+    it('should call authService.getMe with user id and return the user without password', () => {
       authService.getMe.mockReturnValue(testUserNoPassword);
 
-      const result = controller.getMe();
+      const result = controller.getMe(testUser.id);
 
-      expect(authService.getMe).toHaveBeenCalledWith(
-        '0a3fd84a-b19f-4818-afbf-0173330f50de',
-      );
+      expect(authService.getMe).toHaveBeenCalledWith(testUser.id);
       expect(result).toEqual(testUserNoPassword);
     });
 
@@ -125,7 +123,7 @@ describe('AuthController', () => {
         throw new NotFoundException('User not found');
       });
 
-      expect(() => controller.getMe()).toThrow(NotFoundException);
+      expect(() => controller.getMe(testUser.id)).toThrow(NotFoundException);
     });
   });
 
@@ -190,14 +188,12 @@ describe('AuthController', () => {
   // POST /auth/logout (logout)
   // ----------------------------------------------------
   describe('logout', () => {
-    it('should call authService.logoutUser with hardcoded ID and return true', () => {
+    it('should call authService.logoutUser with user id and return true', () => {
       authService.logoutUser.mockReturnValue(true);
 
-      const result = controller.logout();
+      const result = controller.logout(testUser.id);
 
-      expect(authService.logoutUser).toHaveBeenCalledWith(
-        '0a3fd84a-b19f-4818-afbf-0173330f50de',
-      );
+      expect(authService.logoutUser).toHaveBeenCalledWith(testUser.id);
       expect(result).toBe(true);
     });
 
@@ -206,7 +202,7 @@ describe('AuthController', () => {
         throw new NotFoundException('User not found');
       });
 
-      expect(() => controller.logout()).toThrow(NotFoundException);
+      expect(() => controller.logout(testUser.id)).toThrow(NotFoundException);
     });
   });
 
@@ -214,14 +210,14 @@ describe('AuthController', () => {
   // PATCH /auth/me (updateMe)
   // ----------------------------------------------------
   describe('updateMe', () => {
-    it('should call authService.updateMe with hardcoded ID and received DTO and return updated user without password', () => {
+    it('should call authService.updateMe with user id and received DTO and return updated user without password', () => {
       const updatedUser = { id: testUser.id, username: mockUpdateDto.username };
       authService.updateMe.mockReturnValue(updatedUser);
 
-      const result = controller.updateMe(mockUpdateDto);
+      const result = controller.updateMe(testUser.id, mockUpdateDto);
 
       expect(authService.updateMe).toHaveBeenCalledWith(
-        '0a3fd84a-b19f-4818-afbf-0173330f50de',
+        testUser.id,
         mockUpdateDto,
       );
       expect(result).toEqual(updatedUser);
@@ -232,7 +228,7 @@ describe('AuthController', () => {
         throw new NotFoundException('User not found');
       });
 
-      expect(() => controller.updateMe(mockUpdateDto)).toThrow(
+      expect(() => controller.updateMe(testUser.id, mockUpdateDto)).toThrow(
         NotFoundException,
       );
     });
