@@ -2,8 +2,6 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
-import { AuthGuard } from './auth.guard';
-import { JwtService } from '@nestjs/jwt';
 
 // --- Mock Entity and DTOs ---
 
@@ -61,11 +59,6 @@ const mockAuthService = {
   updateMe: jest.fn(),
 };
 
-// simple guard mock to avoid having to instantiate the real AuthGuard (which requires JwtService)
-const mockGuard = {
-  canActivate: jest.fn().mockReturnValue(true),
-};
-
 describe('AuthController', () => {
   let controller: AuthController;
   let authService: typeof mockAuthService;
@@ -77,20 +70,6 @@ describe('AuthController', () => {
         {
           provide: AuthService,
           useValue: mockAuthService,
-        },
-        // Provide a mock JwtService so AuthGuard's dependencies can be resolved if instantiated
-        {
-          provide: JwtService,
-          useValue: {
-            verifyAsync: jest.fn().mockResolvedValue({
-              sub: testUser.id,
-              username: testUser.username,
-            }),
-          },
-        },
-        {
-          provide: AuthGuard,
-          useValue: mockGuard,
         },
       ],
     }).compile();
