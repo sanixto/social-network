@@ -1,18 +1,27 @@
 import { NestFactory } from '@nestjs/core';
-import { AppModule } from './app.module';
-import { ValidationPipe } from '@nestjs/common/pipes/validation.pipe';
+import { ValidationPipe } from '@nestjs/common';
 import helmet from 'helmet';
+import { AppModule } from './app.module';
+import { SwaggerConfig } from './config/swagger.config';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
+  // Security
   app.use(helmet());
+
+  // Validation
   app.useGlobalPipes(
     new ValidationPipe({
-      whitelist: true, // strips properties not in DTO
-      forbidNonWhitelisted: true, // throws error if extra properties sent
-      transform: true, // auto-transform payloads to DTO instances
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
     }),
   );
+
+  // Documentation
+  SwaggerConfig.setup(app);
+
   await app.listen(process.env.PORT ?? 3000);
 }
 bootstrap();
