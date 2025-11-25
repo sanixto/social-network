@@ -2,6 +2,8 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
+import { AuthGuard } from './auth.guard';
+import { JwtService } from '@nestjs/jwt';
 
 // --- Mock Entity and DTOs ---
 
@@ -39,7 +41,11 @@ class UpdateUserDto {
 
 // --- Mock Data ---
 
-const testUser = new User('test-user-id', 'testuser', 'password');
+const testUser = new User(
+  '0a3fd84a-b19f-4818-afbf-0173330f50de',
+  'testuser',
+  'Password1!',
+);
 const testUserNoPassword = { id: testUser.id, username: testUser.username };
 const mockCreateDto = new CreateUserDto('newuser', 'newpassword');
 const mockUpdateDto = new UpdateUserDto('new_username');
@@ -55,6 +61,11 @@ const mockAuthService = {
   updateMe: jest.fn(),
 };
 
+// simple guard mock to avoid having to instantiate the real AuthGuard (which requires JwtService)
+const mockGuard = {
+  canActivate: jest.fn().mockReturnValue(true),
+};
+
 describe('AuthController', () => {
   let controller: AuthController;
   let authService: typeof mockAuthService;
@@ -66,6 +77,20 @@ describe('AuthController', () => {
         {
           provide: AuthService,
           useValue: mockAuthService,
+        },
+        // Provide a mock JwtService so AuthGuard's dependencies can be resolved if instantiated
+        {
+          provide: JwtService,
+          useValue: {
+            verifyAsync: jest.fn().mockResolvedValue({
+              sub: testUser.id,
+              username: testUser.username,
+            }),
+          },
+        },
+        {
+          provide: AuthGuard,
+          useValue: mockGuard,
         },
       ],
     }).compile();
@@ -89,7 +114,9 @@ describe('AuthController', () => {
 
       const result = controller.getMe();
 
-      expect(authService.getMe).toHaveBeenCalledWith('test-user-id');
+      expect(authService.getMe).toHaveBeenCalledWith(
+        '0a3fd84a-b19f-4818-afbf-0173330f50de',
+      );
       expect(result).toEqual(testUserNoPassword);
     });
 
@@ -112,10 +139,13 @@ describe('AuthController', () => {
 
       const result = await controller.signIn({
         username: 'testuser',
-        password: 'password',
+        password: 'Password1!',
       });
 
-      expect(authService.validate).toHaveBeenCalledWith('testuser', 'password');
+      expect(authService.validate).toHaveBeenCalledWith(
+        'testuser',
+        'Password1!',
+      );
       expect(authService.signIn).toHaveBeenCalledWith(testUserNoPassword);
       expect(result).toEqual({ access_token: 'jwt-token-123' });
     });
@@ -126,7 +156,7 @@ describe('AuthController', () => {
       });
 
       await expect(
-        controller.signIn({ username: 'wrong', password: 'password' }),
+        controller.signIn({ username: 'wrong', password: 'Password1!' }),
       ).rejects.toThrow(NotFoundException);
     });
 
@@ -165,7 +195,9 @@ describe('AuthController', () => {
 
       const result = controller.logout();
 
-      expect(authService.logoutUser).toHaveBeenCalledWith('test-user-id');
+      expect(authService.logoutUser).toHaveBeenCalledWith(
+        '0a3fd84a-b19f-4818-afbf-0173330f50de',
+      );
       expect(result).toBe(true);
     });
 
@@ -189,7 +221,7 @@ describe('AuthController', () => {
       const result = controller.updateMe(mockUpdateDto);
 
       expect(authService.updateMe).toHaveBeenCalledWith(
-        'test-user-id',
+        '0a3fd84a-b19f-4818-afbf-0173330f50de',
         mockUpdateDto,
       );
       expect(result).toEqual(updatedUser);

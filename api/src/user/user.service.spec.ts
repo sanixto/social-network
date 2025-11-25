@@ -43,7 +43,7 @@ describe('UserService', () => {
   const initialUser: User = {
     id: testUUID,
     username: 'testuser',
-    password: 'password',
+    password: 'Password1!',
   };
 
   const mockCreateUserDto = new CreateUserDto('newuser', 'newpassword');

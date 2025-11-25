@@ -52,7 +52,7 @@ describe('AuthService', () => {
   const initialUser: User = {
     id: TEST_UUID,
     username: 'testuser',
-    password: 'password',
+    password: 'Password1!',
   };
 
   // User shape without password for assertions
