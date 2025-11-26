@@ -6,6 +6,7 @@ import { LoggerMiddleware } from './middlewares/logger.middleware';
 import { UserModule } from './user/user.module';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { LoggerInterceptor } from './logger.interceptor';
+import { AppConfigModule } from './config/config.module';
 
 @Module({
   controllers: [AppController],
@@ -13,7 +14,7 @@ import { LoggerInterceptor } from './logger.interceptor';
     AppService,
     { provide: APP_INTERCEPTOR, useClass: LoggerInterceptor },
   ],
-  imports: [AuthModule, UserModule],
+  imports: [AppConfigModule, AuthModule, UserModule],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {

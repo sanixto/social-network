@@ -3,12 +3,16 @@ import { ValidationPipe } from '@nestjs/common';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
 import { SwaggerConfig } from './config/swagger.config';
+import { AppConfig } from './config/app.config';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   // Security
   app.use(helmet());
+
+  // Config
+  const appConfig = app.get(AppConfig);
 
   // Validation
   app.useGlobalPipes(
@@ -20,8 +24,10 @@ async function bootstrap() {
   );
 
   // Documentation
-  SwaggerConfig.setup(app);
+  if (appConfig.isDevelopment) {
+    SwaggerConfig.setup(app);
+  }
 
-  await app.listen(process.env.PORT ?? 3000);
+  await app.listen(appConfig.port);
 }
 bootstrap();

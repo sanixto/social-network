@@ -5,14 +5,17 @@ import { UserModule } from '../user/user.module';
 import { JwtModule } from '@nestjs/jwt';
 import { APP_GUARD } from '@nestjs/core';
 import { AuthGuard } from './auth.guard';
-
+import { JwtConfig } from 'src/config/jwt.config';
 @Module({
   imports: [
     UserModule,
-    JwtModule.register({
+    JwtModule.registerAsync({
       global: true,
-      secret: 'test_secret',
-      signOptions: { expiresIn: '60s' },
+      useFactory: (jwtConfig: JwtConfig) => ({
+        secret: jwtConfig.secret,
+        signOptions: { expiresIn: jwtConfig.expiresIn },
+      }),
+      inject: [JwtConfig],
     }),
   ],
   controllers: [AuthController],
