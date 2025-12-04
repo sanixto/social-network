@@ -1,4 +1,5 @@
-import { Text, View } from 'react-native';
+import { View } from 'react-native';
+import SignInForm from './components/auth/SignInForm';
 
 export default function Index() {
  return (
@@ -9,7 +10,9 @@ export default function Index() {
     alignItems: 'center',
    }}
   >
-   <Text style={{ fontSize: 18, fontWeight: 'bold' }}>Sign In</Text>
+   <View style={{ width: '70%' }}>
+    <SignInForm />
+   </View>
   </View>
  );
 }
