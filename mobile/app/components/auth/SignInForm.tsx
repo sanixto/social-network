@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Text, View, TextInput } from 'react-native';
+import { useCallback, useState } from 'react';
+import { Text, View, TextInput, Button } from 'react-native';
 
 interface SignInDto {
  username: string;
@@ -14,9 +14,13 @@ const initialFormState: SignInDto = {
 export default function SignInForm() {
  const [formState, setFormState] = useState<SignInDto>(initialFormState);
 
- const handleChange = (key: keyof SignInDto, value: string) => {
+ const handleChange = useCallback((key: keyof SignInDto, value: string) => {
   setFormState((prevState) => ({ ...prevState, [key]: value }));
- };
+ }, []);
+
+ const handleSubmit = useCallback(() => {
+  // handle form submission
+ }, []);
 
  return (
   <View
@@ -57,6 +61,9 @@ export default function SignInForm() {
      value={formState.password}
      onChangeText={(value) => handleChange('password', value)}
     />
+   </View>
+   <View>
+    <Button title="Sign In" onPress={handleSubmit} />
    </View>
   </View>
  );
