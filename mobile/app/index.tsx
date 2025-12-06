@@ -1,9 +1,10 @@
-import { View } from 'react-native';
+import { KeyboardAvoidingView, Platform, View } from 'react-native';
 import SignInForm from './components/auth/SignInForm';
 
 export default function Index() {
  return (
-  <View
+  <KeyboardAvoidingView
+   behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
    style={{
     flex: 1,
     justifyContent: 'center',
@@ -13,6 +14,6 @@ export default function Index() {
    <View style={{ width: '70%' }}>
     <SignInForm />
    </View>
-  </View>
+  </KeyboardAvoidingView>
  );
 }
