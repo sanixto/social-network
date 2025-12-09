@@ -1,3 +1,4 @@
+import { authService } from '@/app/api/services/auth.service';
 import { useCallback, useState } from 'react';
 import { Text, View, TextInput, Button } from 'react-native';
 
@@ -19,8 +20,15 @@ export default function SignInForm() {
  }, []);
 
  const handleSubmit = useCallback(() => {
-  // handle form submission
- }, []);
+  authService
+   .signIn(formState.username, formState.password)
+   .then((data) => {
+    console.log('Signed in successfully, token:', data.access_token);
+   })
+   .catch((error) => {
+    console.error('Sign in failed:', error.message);
+   });
+ }, [formState.username, formState.password]);
 
  return (
   <View
