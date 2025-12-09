@@ -10,6 +10,10 @@ async function bootstrap() {
 
   // Security
   app.use(helmet());
+  app.enableCors({
+    origin: true,
+    credentials: true,
+  });
 
   // Config
   const appConfig = app.get(AppConfig);
