@@ -1,6 +1,6 @@
 import { authService } from '@/app/api/services/auth.service';
 import { useCallback, useState } from 'react';
-import { Text, View, TextInput, Button } from 'react-native';
+import { Text, View, TextInput, Button, StyleSheet } from 'react-native';
 
 interface SignInDto {
  username: string;
@@ -31,26 +31,12 @@ export default function SignInForm() {
  }, [formState.username, formState.password]);
 
  return (
-  <View
-   style={{
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 12,
-   }}
-  >
-   <Text style={{ fontSize: 18, fontWeight: 'bold', textAlign: 'center' }}>
-    Sign In
-   </Text>
+  <View style={styles.container}>
+   <Text style={styles.title}>Sign In</Text>
    <View>
     <Text>Username</Text>
     <TextInput
-     style={{
-      width: '100%',
-      borderColor: 'gray',
-      borderWidth: 1,
-      marginBottom: 12,
-      padding: 8,
-     }}
+     style={styles.input}
      value={formState.username}
      onChangeText={(value) => handleChange('username', value)}
     />
@@ -58,13 +44,7 @@ export default function SignInForm() {
    <View>
     <Text>Password</Text>
     <TextInput
-     style={{
-      width: '100%',
-      borderColor: 'gray',
-      borderWidth: 1,
-      marginBottom: 12,
-      padding: 8,
-     }}
+     style={styles.input}
      secureTextEntry={true}
      value={formState.password}
      onChangeText={(value) => handleChange('password', value)}
@@ -76,3 +56,19 @@ export default function SignInForm() {
   </View>
  );
 }
+
+const styles = StyleSheet.create({
+ container: {
+  display: 'flex',
+  flexDirection: 'column',
+  gap: 12,
+ },
+ title: { fontSize: 18, fontWeight: 'bold', textAlign: 'center' },
+ input: {
+  width: '100%',
+  borderColor: 'gray',
+  borderWidth: 1,
+  marginBottom: 12,
+  padding: 8,
+ },
+});
